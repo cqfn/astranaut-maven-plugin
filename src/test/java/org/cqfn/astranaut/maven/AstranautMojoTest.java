@@ -23,6 +23,7 @@
  */
 package org.cqfn.astranaut.maven;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -39,7 +40,6 @@ import org.apache.maven.project.MavenProject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.mockito.Mockito;
 
 /**
  * Test for the {@link AstranautMojo} class.
@@ -64,8 +64,9 @@ public class AstranautMojoTest {
         final AstranautMojo mojo = new AstranautMojo();
         mojo.setOutput(dir.toFile());
         mojo.setDsl(dsl.toFile());
-        mojo.setLicense(license.toString());
-        final MavenProject project = Mockito.mock(MavenProject.class);
+        mojo.setLicense(new File(license.toString()));
+        mojo.setPackage("org.cqfn.astranaut.generated.tree");
+        final MavenProject project = new MavenProject();
         boolean oops = false;
         try {
             mojo.setProject(project);
@@ -77,6 +78,39 @@ public class AstranautMojoTest {
         final Set<String> files = this.listFilesInDir(dir.toAbsolutePath().toString());
         final int expected = 3;
         Assertions.assertEquals(expected, files.size());
+    }
+
+    /**
+     * Test plugin with custom parameters and a Maven project with a source route that includes
+     * the specified output directory.
+     * @param source A temporary directory
+     * @throws IOException If fails
+     */
+    @Test
+    public void testWithNestedSourceParameter(@TempDir final Path source) throws IOException {
+        final Path dsl = this.createTempFile(
+            source, "dsl.txt", "PrimitiveType <- $String$, $#$, $#$;"
+        );
+        final Path license = this.createTempFile(
+            source, "FULL_LICENSE.txt", "The MIT License (MIT)"
+        );
+        final AstranautMojo mojo = new AstranautMojo();
+        mojo.setDsl(dsl.toFile());
+        mojo.setLicense(new File(license.toString()));
+        mojo.setPackage("org.uast.gen");
+        final MavenProject project = new MavenProject();
+        final Path src = Files.createTempDirectory(source, "src");
+        project.addCompileSourceRoot(src.toString());
+        final Path dir = Files.createTempDirectory(src, "generated");
+        mojo.setOutput(dir.toFile());
+        boolean oops = false;
+        try {
+            mojo.setProject(project);
+            mojo.execute();
+        } catch (final MojoExecutionException ignored) {
+            oops = true;
+        }
+        Assertions.assertTrue(oops);
     }
 
     /**
@@ -108,7 +142,8 @@ public class AstranautMojoTest {
         Files.walkFileTree(
             Paths.get(dir), new SimpleFileVisitor<Path>() {
                 @Override
-                public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs) {
+                public FileVisitResult visitFile(
+                    final Path file, final BasicFileAttributes attrs) {
                     if (!Files.isDirectory(file)) {
                         files.add(file.getFileName().toString());
                     }
