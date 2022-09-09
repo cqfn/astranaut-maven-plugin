@@ -87,9 +87,9 @@ public final class AstranautMojo extends AbstractMojo {
     private String pkg;
 
     /**
-     * The package of the generated Java source files.
+     * The version of the implementation.
      */
-    @Parameter(property = "astranaut.version", defaultValue = "0.0.0")
+    @Parameter(property = "astranaut.version")
     private String version;
 
     /**
