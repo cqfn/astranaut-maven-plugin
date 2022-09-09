@@ -23,12 +23,14 @@
  */
 package org.cqfn.astranaut.maven;
 
+import com.jcabi.log.Logger;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
@@ -61,21 +63,34 @@ public final class AstranautMojo extends AbstractMojo {
     /**
      * The file that contains DSL rules.
      */
-    @Parameter(property = "dsl", defaultValue = "${basedir}/src/main/dsl/rules.dsl")
+    @Parameter(property = "astranaut.dsl", defaultValue = "${basedir}/src/main/dsl/rules.dsl")
     private File dsl;
 
     /**
      * The name of file that contains license header.
      */
-    @Parameter(property = "license", defaultValue = "LICENSE.txt")
-    private String license;
+    @Parameter(property = "astranaut.license", defaultValue = "${basedir}/LICENSE.txt")
+    private File license;
 
     /**
      * The output directory where the Java files are generated.
      */
-    @Parameter(property = "output",
+    @Parameter(property = "astranaut.output",
         defaultValue = "${project.build.directory}/generated-sources/astranaut")
     private File output;
+
+    /**
+     * The package of the generated Java source files.
+     */
+    @Parameter(property = "astranaut.pkg",
+        defaultValue = "org.cqfn.astranaut.generated.tree")
+    private String pkg;
+
+    /**
+     * The version of the implementation.
+     */
+    @Parameter(property = "astranaut.version")
+    private String version;
 
     /**
      * The Maven project.
@@ -92,7 +107,7 @@ public final class AstranautMojo extends AbstractMojo {
     }
 
     /**
-     * Set DSL file (mostly for unit testing).
+     * Set DSL file (used mostly for unit testing).
      * @param rules The file that contains DSL rules
      */
     public void setDsl(final File rules) {
@@ -100,31 +115,53 @@ public final class AstranautMojo extends AbstractMojo {
     }
 
     /**
-     * Set path to the license (mostly for unit testing).
+     * Set license file (used mostly for unit testing).
      * @param path The path to the license
      */
-    public void setLicense(final String path) {
+    public void setLicense(final File path) {
         this.license = path;
     }
 
     /**
-     * Set DSL file (mostly for unit testing).
+     * Set DSL file (used mostly for unit testing).
      * @param dir The output directory where the Java files are generated
      */
     public void setOutput(final File dir) {
         this.output = dir;
     }
 
+    /**
+     * Set package (used mostly for unit testing).
+     * @param genpkg The package of the generated files
+     */
+    public void setPackage(final String genpkg) {
+        this.pkg = genpkg;
+    }
+
+    /**
+     * Set version (used mostly for unit testing).
+     * @param genversion The version of the implementation
+     */
+    public void setVersion(final String genversion) {
+        this.version = genversion;
+    }
+
     @Override
     public void execute() throws MojoExecutionException {
         if (this.project != null) {
-            this.addSourceRoot(this.output);
-            final String rules = this.dsl.getPath();
+            this.validateLicense();
+            this.validatePackage();
+            this.addSourceRoot();
+            final String rules = this.dsl.getAbsolutePath();
             String code = "";
             try {
                 code = new FilesReader(rules).readAsString();
             } catch (final IOException exception) {
-                getLog().error(exception);
+                Logger.info(
+                    this,
+                    "Specified DSL file does not exist: %s",
+                    this.dsl.getPath()
+                );
                 throw new MojoExecutionException(
                     "Cannot read DSL file", exception
                 );
@@ -138,6 +175,7 @@ public final class AstranautMojo extends AbstractMojo {
                 final ProgramGenerator generator =
                     new ProgramGenerator(this.output.getPath(), program, env);
                 generator.generate();
+                Logger.info(this, "Generation completed");
             } catch (final BaseException exception) {
                 throw new MojoExecutionException(
                     "Cannot generate source files", exception
@@ -147,12 +185,72 @@ public final class AstranautMojo extends AbstractMojo {
     }
 
     /**
-     * Adds new sources to the Maven's build.
-     * @param dir The root directory of generated files
+     * Validates custom license or existence of license expected by default.
+     * @throws MojoExecutionException If the specified path is invalid
      */
-    private void addSourceRoot(final File dir) {
-        if (dir.isDirectory()) {
-            this.project.addCompileSourceRoot(dir.getPath());
+    private void validateLicense() throws MojoExecutionException {
+        if (!this.license.exists()) {
+            Logger.info(
+                this,
+                "Specified license file does not exist: %s",
+                this.license
+            );
+            throw new MojoExecutionException(
+                "Cannot find the license file"
+            );
+        }
+    }
+
+    /**
+     * Validates a string that should contain a package name.
+     * @throws MojoExecutionException If the specified path is invalid
+     */
+    private void validatePackage() throws MojoExecutionException {
+        final String pattern = "(([a-z])+\\.)+([a-z])+";
+        final boolean valid = Pattern.matches(pattern, this.pkg);
+        if (!valid) {
+            Logger.info(
+                this,
+                "Specified package for generation does not follow Java's package name rules: %s",
+                this.pkg
+            );
+            throw new MojoExecutionException("Cannot create package for generation");
+        }
+    }
+
+    /**
+     * Adds the root directory of generated files to the Maven's build.
+     * @throws MojoExecutionException If the specified path is invalid
+     */
+    private void addSourceRoot() throws MojoExecutionException {
+        final File dir = new File(this.output.getAbsolutePath());
+        final List<String> sources = this.project.getCompileSourceRoots();
+        final String path = dir.getAbsolutePath();
+        for (final String src : sources) {
+            if (path.startsWith(src) && !path.equals(src)) {
+                Logger.info(
+                    this,
+                    "Specified target directory for generation is inside existing source root: %s",
+                    path
+                );
+                throw new MojoExecutionException("Cannot create output directory");
+            }
+        }
+        final boolean exist;
+        if (dir.exists()) {
+            exist = true;
+        } else {
+            exist = dir.mkdirs();
+        }
+        if (exist) {
+            this.project.addCompileSourceRoot(path);
+        } else {
+            Logger.info(
+                this,
+                "Specified target directory for generation is invalid: %s",
+                path
+            );
+            throw new MojoExecutionException("Cannot find output directory");
         }
     }
 
@@ -162,36 +260,25 @@ public final class AstranautMojo extends AbstractMojo {
      * @since 0.1.5
      */
     private class EnvironmentImpl implements Environment {
-        /**
-         * The license.
-         */
-        private final License license;
-
-        /**
-         * Constructor.
-         */
-        EnvironmentImpl() {
-            this.license = new License(AstranautMojo.this.license);
-        }
-
         @Override
         public License getLicense() {
-            return this.license;
+            return new License(AstranautMojo.this.license.getAbsolutePath());
         }
 
         @Override
         public String getVersion() {
-            return "0.1";
+            final String result;
+            if (AstranautMojo.this.version == null) {
+                result = AstranautMojo.this.project.getVersion();
+            } else {
+                result = AstranautMojo.this.version;
+            }
+            return result;
         }
 
         @Override
         public String getRootPackage() {
-            return "org.uast.uast.generated.tree";
-        }
-
-        @Override
-        public String getBasePackage() {
-            return "org.uast.uast.base";
+            return AstranautMojo.this.pkg;
         }
 
         @Override

@@ -93,7 +93,7 @@ SOFTWARE.
     <dependency>
       <groupId>org.cqfn</groupId>
       <artifactId>astranaut</artifactId>
-      <version>0.2.4</version>
+      <version>0.2.5</version>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
@@ -104,6 +104,10 @@ SOFTWARE.
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-engine</artifactId>
       <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.jcabi</groupId>
+      <artifactId>jcabi-log</artifactId>
     </dependency>
   </dependencies>
   <build>
@@ -157,6 +161,8 @@ SOFTWARE.
           <pomIncludes>
             <pomInclude>default-parameters/pom.xml</pomInclude>
             <pomInclude>all-custom-parameters/pom.xml</pomInclude>
+            <pomInclude>some-custom-parameters/pom.xml</pomInclude>
+            <pomInclude>output-exception/pom.xml</pomInclude>
           </pomIncludes>
           <settingsFile>src/it/settings.xml</settingsFile>
         </configuration>
