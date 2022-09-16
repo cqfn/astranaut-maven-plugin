@@ -43,10 +43,10 @@ import org.cqfn.astranaut.codegen.java.Environment;
 import org.cqfn.astranaut.codegen.java.License;
 import org.cqfn.astranaut.codegen.java.ProgramGenerator;
 import org.cqfn.astranaut.codegen.java.TaggedChild;
-import org.cqfn.astranaut.exceptions.BaseException;
+import org.cqfn.astranaut.core.exceptions.BaseException;
+import org.cqfn.astranaut.core.utils.FilesReader;
 import org.cqfn.astranaut.parser.ProgramParser;
 import org.cqfn.astranaut.rules.Program;
-import org.cqfn.astranaut.utils.FilesReader;
 
 /**
  * Parses a DSL file and transforms its rules into Java source files.

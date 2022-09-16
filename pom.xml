@@ -93,7 +93,7 @@ SOFTWARE.
     <dependency>
       <groupId>org.cqfn</groupId>
       <artifactId>astranaut</artifactId>
-      <version>0.2.5</version>
+      <version>0.2.7</version>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
