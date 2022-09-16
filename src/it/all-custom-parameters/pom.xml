@@ -59,7 +59,7 @@ SOFTWARE.
     <dependency>
       <groupId>org.cqfn</groupId>
       <artifactId>astranaut-core</artifactId>
-      <version>1.0.1</version>
+      <version>@core.version@</version>
     </dependency>
   </dependencies>
 </project>

@@ -70,6 +70,7 @@ SOFTWARE.
     <maven.compiler.target>8</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <qulice.license>${project.basedir}/LICENSE.txt</qulice.license>
+    <core.version>1.0.3</core.version>
   </properties>
   <dependencies>
     <dependency>
@@ -93,7 +94,7 @@ SOFTWARE.
     <dependency>
       <groupId>org.cqfn</groupId>
       <artifactId>astranaut</artifactId>
-      <version>0.2.5</version>
+      <version>0.2.7</version>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
@@ -165,6 +166,9 @@ SOFTWARE.
             <pomInclude>output-exception/pom.xml</pomInclude>
           </pomIncludes>
           <settingsFile>src/it/settings.xml</settingsFile>
+          <environmentVariables>
+            <core.version>${core.version}</core.version>
+          </environmentVariables>
         </configuration>
         <executions>
           <execution>
