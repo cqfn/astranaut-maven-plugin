@@ -46,14 +46,14 @@ import org.junit.jupiter.api.io.TempDir;
  *
  * @since 0.1
  */
-public class AstranautMojoTest {
+class AstranautMojoTest {
     /**
      * Test plugin with custom parameters and an empty Maven project.
      * @param source A temporary directory
      * @throws IOException If fails
      */
     @Test
-    public void testWithCustomParameters(@TempDir final Path source) throws IOException {
+    void testWithCustomParameters(@TempDir final Path source) throws IOException {
         final Path dsl = this.createTempFile(
             source, "rules.dsl", "StringLiteral <- $String$, $#$, $#$;"
         );
@@ -87,7 +87,7 @@ public class AstranautMojoTest {
      * @throws IOException If fails
      */
     @Test
-    public void testWithNestedSourceParameter(@TempDir final Path source) throws IOException {
+    void testWithNestedSourceParameter(@TempDir final Path source) throws IOException {
         final Path dsl = this.createTempFile(
             source, "dsl.txt", "PrimitiveType <- $String$, $#$, $#$;"
         );
