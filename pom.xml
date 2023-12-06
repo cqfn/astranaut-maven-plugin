@@ -31,7 +31,7 @@ SOFTWARE.
   </parent>
   <groupId>org.cqfn</groupId>
   <artifactId>astranaut-maven-plugin</artifactId>
-  <version>1.0-SNAPSHOT</version>
+  <version>0.1.11</version>
   <packaging>maven-plugin</packaging>
   <name>astranaut-maven-plugin</name>
   <description>A Maven plugin to generate sources for AST models</description>
