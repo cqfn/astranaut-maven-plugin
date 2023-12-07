@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2022 Ivan Kniazkov
+ * Copyright (c) 2023 Ivan Kniazkov
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -66,6 +66,7 @@ class AstranautMojoTest {
         mojo.setDsl(dsl.toFile());
         mojo.setLicense(new File(license.toString()));
         mojo.setPackage("org.cqfn.astranaut.generated.tree");
+        mojo.setDbgInfoFlag();
         final MavenProject project = new MavenProject();
         boolean oops = false;
         try {

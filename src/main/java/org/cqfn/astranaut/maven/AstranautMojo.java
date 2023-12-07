@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2022 Ivan Kniazkov
+ * Copyright (c) 2023 Ivan Kniazkov
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -87,6 +87,14 @@ public final class AstranautMojo extends AbstractMojo {
     private String pkg;
 
     /**
+     * Whether to add some debugging information to the generated files,
+     *  such as the generator version.
+     */
+    @Parameter(property = "astranaut.dbginfo",
+        defaultValue = "false")
+    private boolean dbginfo;
+
+    /**
      * The version of the implementation.
      */
     @Parameter(property = "astranaut.version")
@@ -136,6 +144,13 @@ public final class AstranautMojo extends AbstractMojo {
      */
     public void setPackage(final String genpkg) {
         this.pkg = genpkg;
+    }
+
+    /**
+     * Add some debugging information to the generated files (used mostly for unit testing).
+     */
+    public void setDbgInfoFlag() {
+        this.dbginfo = true;
     }
 
     /**
@@ -304,6 +319,11 @@ public final class AstranautMojo extends AbstractMojo {
         @Override
         public Set<String> getImports(final String type) {
             return Collections.emptySet();
+        }
+
+        @Override
+        public boolean whetherToAddGeneratorVersion() {
+            return AstranautMojo.this.dbginfo;
         }
     }
 }
