@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2023 Ivan Kniazkov
+ * Copyright (c) 2024 Ivan Kniazkov
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -170,6 +170,13 @@ public final class AstranautMojo extends AbstractMojo {
             final String rules = this.dsl.getAbsolutePath();
             String code = "";
             try {
+                final StringBuilder ver = new StringBuilder();
+                ver.append("ASTranaut plugin v. ")
+                    .append(org.cqfn.astranaut.Common.VERSION)
+                    .append(" [core ")
+                    .append(org.cqfn.astranaut.core.Common.VERSION)
+                    .append(']');
+                Logger.info(this, ver.toString());
                 code = new FilesReader(rules).readAsString();
             } catch (final IOException exception) {
                 Logger.info(
