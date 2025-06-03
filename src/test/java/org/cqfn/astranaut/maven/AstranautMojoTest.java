@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2024 Ivan Kniazkov
+ * Copyright (c) 2025 Ivan Kniazkov
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -55,7 +55,7 @@ class AstranautMojoTest {
     @Test
     void testWithCustomParameters(@TempDir final Path source) throws IOException {
         final Path dsl = this.createTempFile(
-            source, "rules.dsl", "StringLiteral <- $String$, $#$, $#$;"
+            source, "rules.dsl", "StringLiteral <- 'String', '\"\"'"
         );
         final Path license = this.createTempFile(
             source, "LICENSE.txt", "The MIT License"
@@ -66,7 +66,6 @@ class AstranautMojoTest {
         mojo.setDsl(dsl.toFile());
         mojo.setLicense(new File(license.toString()));
         mojo.setPackage("org.cqfn.astranaut.generated.tree");
-        mojo.setDbgInfoFlag();
         final MavenProject project = new MavenProject();
         boolean oops = false;
         try {
@@ -77,7 +76,7 @@ class AstranautMojoTest {
         }
         Assertions.assertFalse(oops);
         final Set<String> files = this.listFilesInDir(dir.toAbsolutePath().toString());
-        final int expected = 3;
+        final int expected = 4;
         Assertions.assertEquals(expected, files.size());
     }
 

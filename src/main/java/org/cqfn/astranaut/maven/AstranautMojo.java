@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2024 Ivan Kniazkov
+ * Copyright (c) 2025 Ivan Kniazkov
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,10 +26,7 @@ package org.cqfn.astranaut.maven;
 import com.jcabi.log.Logger;
 import java.io.File;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.regex.Pattern;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -38,15 +35,14 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
-import org.cqfn.astranaut.analyzer.EnvironmentPreparator;
-import org.cqfn.astranaut.codegen.java.Environment;
-import org.cqfn.astranaut.codegen.java.License;
-import org.cqfn.astranaut.codegen.java.ProgramGenerator;
-import org.cqfn.astranaut.codegen.java.TaggedChild;
-import org.cqfn.astranaut.core.exceptions.BaseException;
+import org.cqfn.astranaut.analyzer.Analyzer;
+import org.cqfn.astranaut.cli.Generator;
+import org.cqfn.astranaut.cli.GeneratorArguments;
 import org.cqfn.astranaut.core.utils.FilesReader;
+import org.cqfn.astranaut.dsl.Program;
+import org.cqfn.astranaut.exceptions.BaseException;
+import org.cqfn.astranaut.parser.DslReader;
 import org.cqfn.astranaut.parser.ProgramParser;
-import org.cqfn.astranaut.rules.Program;
 
 /**
  * Parses a DSL file and transforms its rules into Java source files.
@@ -76,23 +72,15 @@ public final class AstranautMojo extends AbstractMojo {
      * The output directory where the Java files are generated.
      */
     @Parameter(property = "astranaut.output",
-        defaultValue = "${project.build.directory}/generated-sources/astranaut")
+        defaultValue = "${project.build.directory}/generated")
     private File output;
 
     /**
      * The package of the generated Java source files.
      */
     @Parameter(property = "astranaut.pkg",
-        defaultValue = "org.cqfn.astranaut.generated.tree")
+        defaultValue = "ast")
     private String pkg;
-
-    /**
-     * Whether to add some debugging information to the generated files,
-     *  such as the generator version.
-     */
-    @Parameter(property = "astranaut.dbginfo",
-        defaultValue = "false")
-    private boolean dbginfo;
 
     /**
      * The version of the implementation.
@@ -147,13 +135,6 @@ public final class AstranautMojo extends AbstractMojo {
     }
 
     /**
-     * Add some debugging information to the generated files (used mostly for unit testing).
-     */
-    public void setDbgInfoFlag() {
-        this.dbginfo = true;
-    }
-
-    /**
      * Set version (used mostly for unit testing).
      * @param genversion The version of the implementation
      */
@@ -168,16 +149,15 @@ public final class AstranautMojo extends AbstractMojo {
             this.validatePackage();
             this.addSourceRoot();
             final String rules = this.dsl.getAbsolutePath();
-            String code = "";
             try {
                 final StringBuilder ver = new StringBuilder();
                 ver.append("ASTranaut plugin v. ")
-                    .append(org.cqfn.astranaut.Common.VERSION)
+                    .append(org.cqfn.astranaut.Info.VERSION)
                     .append(" [core ")
-                    .append(org.cqfn.astranaut.core.Common.VERSION)
+                    .append(org.cqfn.astranaut.core.Info.VERSION)
                     .append(']');
                 Logger.info(this, ver.toString());
-                code = new FilesReader(rules).readAsString();
+                new FilesReader(rules).readAsString();
             } catch (final IOException exception) {
                 Logger.info(
                     this,
@@ -189,14 +169,21 @@ public final class AstranautMojo extends AbstractMojo {
                 );
             }
             try {
-                final ProgramParser parser = new ProgramParser(code);
-                final Program program = parser.parse();
-                final Map<String, Environment> env =
-                    new EnvironmentPreparator(program, new AstranautMojo.EnvironmentImpl())
-                        .prepare();
-                final ProgramGenerator generator =
-                    new ProgramGenerator(this.output.getPath(), program, env);
-                generator.generate();
+                final DslReader reader = new DslReader();
+                reader.readFile(this.dsl.getAbsolutePath());
+                final ProgramParser parser = new ProgramParser();
+                final Program program = parser.parse(reader);
+                final Analyzer analyzer = new Analyzer(program, parser.getLocations());
+                analyzer.analyze();
+                final GeneratorArguments arguments = new GeneratorArguments();
+                if (this.version != null) {
+                    arguments.setVersion(this.version);
+                }
+                arguments.setPackage(this.pkg);
+                arguments.setOutput(this.output.getAbsolutePath());
+                arguments.setLicenseFile(this.license.getAbsolutePath());
+                final Generator generator = new Generator(arguments);
+                generator.generate(program);
                 Logger.info(this, "Generation completed");
             } catch (final BaseException exception) {
                 throw new MojoExecutionException(
@@ -228,7 +215,7 @@ public final class AstranautMojo extends AbstractMojo {
      * @throws MojoExecutionException If the specified path is invalid
      */
     private void validatePackage() throws MojoExecutionException {
-        final String pattern = "(([a-z])+\\.)+([a-z])+";
+        final String pattern = "^[a-zA-Z_][a-zA-Z0-9_]*(\\.[a-zA-Z_][a-zA-Z0-9_]*)*$";
         final boolean valid = Pattern.matches(pattern, this.pkg);
         if (!valid) {
             Logger.info(
@@ -273,64 +260,6 @@ public final class AstranautMojo extends AbstractMojo {
                 path
             );
             throw new MojoExecutionException("Cannot find output directory");
-        }
-    }
-
-    /**
-     * Environment implementation.
-     *
-     * @since 0.1.5
-     */
-    private class EnvironmentImpl implements Environment {
-        @Override
-        public License getLicense() {
-            return new License(AstranautMojo.this.license.getAbsolutePath());
-        }
-
-        @Override
-        public String getVersion() {
-            final String result;
-            if (AstranautMojo.this.version == null) {
-                result = AstranautMojo.this.project.getVersion();
-            } else {
-                result = AstranautMojo.this.version;
-            }
-            return result;
-        }
-
-        @Override
-        public String getRootPackage() {
-            return AstranautMojo.this.pkg;
-        }
-
-        @Override
-        public boolean isTestMode() {
-            return false;
-        }
-
-        @Override
-        public String getLanguage() {
-            return "";
-        }
-
-        @Override
-        public List<String> getHierarchy(final String name) {
-            return Collections.singletonList(name);
-        }
-
-        @Override
-        public List<TaggedChild> getTags(final String type) {
-            return Collections.emptyList();
-        }
-
-        @Override
-        public Set<String> getImports(final String type) {
-            return Collections.emptySet();
-        }
-
-        @Override
-        public boolean whetherToAddGeneratorVersion() {
-            return AstranautMojo.this.dbginfo;
         }
     }
 }
