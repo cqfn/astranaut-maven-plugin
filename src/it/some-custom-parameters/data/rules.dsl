@@ -1,22 +1,49 @@
-Identifier <- $String$, $#$, $#$;
+Comma <- 0;
+',' -> Comma;
 
-Expression <- BinaryExpression | Variable;
-BinaryExpression <- Addition | Subtraction;
-Variable <- Identifier;
+Whitespace <- 0;
+' ' -> Whitespace;
+
+SmallLetter <- 'char';
+'a..z'<#1> -> SmallLetter<#1>;
+
+CapitalLetter <- 'char';
+'A..Z'<#1> -> CapitalLetter<#1>;
+
+Underscore <- 'char', "'_'";
+'_' -> Underscore;
+
+Letter <- SmallLetter | CapitalLetter | Underscore;
+
+Digit <- 'int';
+'0..9'<#1> -> Digit<#1>;
+
+LetterOrDigit <- Letter | Digit;
+
+Identifier <- 'String', '""';
+Letter<#1>, {LetterOrDigit<#1>} -> Identifier<#1>;
+AssignableExpression <- Identifier | 0;
+
+IntegerLiteral <- 'int';
+Digit<#1>, {Digit<#1>} -> IntegerLiteral<#1>;
+
+Expression <- Identifier | IntegerLiteral | AssignableExpression | Assignment | Addition;
+
+Assignment <- left@AssignableExpression, right@Expression;
 Addition <- left@Expression, right@Expression;
-Subtraction <- left@Expression, right@Expression;
 
-js:
+Plus <- 'char', "'+'";
+'+' -> Plus;
 
-singleExpression(identifier(literal<#1>)) -> Variable(Identifier<#1>);
-singleExpression(#1, literal<"+">, #2) -> Addition(#1, #2);
+Minus <- 'char', "'-'";
+'-' -> Minus;
 
-python:
+Equality <- 'char', "'='";
+'=' -> Equality;
 
-This <- 0;
+OperatorSymbol <- Plus | Minus | Equality;
+Operator <- 'String', '""';
+{OperatorSymbol<#1>} -> Operator<#1>;
 
-self -> This;
-
-java:
-
-BinaryExpr(#1, #2)<"+"> -> Addition(#1, #2);
+AssignableExpression#1, [Whitespace], Operator<'='>, [Whitespace], Expression#2 -> Assignment(#1, #2);
+Expression#1, [Whitespace], Operator<'+'>, [Whitespace], Expression#2 -> Addition(#1, #2);
